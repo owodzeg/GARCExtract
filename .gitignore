@@ -3,3 +3,9 @@
 ################################################################################
 
 /GARCExtractLocal.sln
+/GARCExtractLocal.vcxproj
+/GARCExtractLocal.vcxproj.filters
+/GARCExtractLocal.vcxproj.user
+/.vs
+/Debug
+/Release
