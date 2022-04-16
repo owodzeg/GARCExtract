@@ -1,99 +1,111 @@
 #include <iostream>
 #include <fstream>
-#include <sys/stat.h>
+//#include <sys/stat.h>
 
-using namespace std;
+//using namespace std;
 
 int main(int argc, char *argv[])
 {
-    cout << "GARCExtract (4th January, 2019) by owocek" << endl;
+	std::cout << "GARCExtract (4th January, 2019) by owocek\n";
 
-    if(argc < 2)
-    return 0;
+	if (argc < 2) {
+		std::cout << "Usage: input_filename";
+		std::cout << "Files are extracted into the directory \"@input_filename\" next to the directory where the executable is located";
+		return 0;
+	}
 
-    string file = argv[1];
-    string folder = "@"+file.substr(file.find_last_of("\\")+1);
+	std::string file = argv[1];
 
-    system(string("md \""+folder+"\"").c_str());
+	std::ifstream garc(file, std::ios::binary);
+	if (!garc.is_open()) {
+		std::cout << "Error! File " << argv[1] << " can't be opened\n";
+		return 0;
+	}
 
-    ifstream garc(file, ios::binary);
+	std::string folder = "@" + file.substr(file.find_last_of("\\") + 1);
 
-    garc.seekg(0x28);
-    uint32_t file_amount;
-    garc.read(reinterpret_cast<char*>(&file_amount), sizeof(uint32_t));
+	system(std::string("md \"" + folder + "\"").c_str());
+	// TO DO: remove calles to system with <filesystem> library
 
-    cout << file_amount << " files detected" << endl;
+	//std::ifstream garc(file, std::ios::binary);
 
-    for(int i=0; i<file_amount; i++)
-    {
-        int addr = 0x40 + (0x18 * i);
+	garc.seekg(0x28);
+	uint32_t file_count;
+	garc.read(reinterpret_cast<char*>(&file_count), sizeof(uint32_t));
 
-        garc.seekg(addr+0x4);
+	std::cout << file_count << " files detected\n";
 
-        uint32_t file_size;
-        garc.read(reinterpret_cast<char*>(&file_size), sizeof(uint32_t));
+	for (int i = 0; i < file_count; i++)
+	{
+		int addr = 0x40 + (0x18 * i);
 
-        garc.seekg(addr+0x8);
+		garc.seekg(addr + 0x4);
 
-        uint32_t data_offset;
-        garc.read(reinterpret_cast<char*>(&data_offset), sizeof(uint32_t));
+		uint32_t file_size;
+		garc.read(reinterpret_cast<char*>(&file_size), sizeof(uint32_t));
 
-        garc.seekg(addr+0xC);
+		garc.seekg(addr + 0x8);
 
-        uint32_t name_offset;
-        garc.read(reinterpret_cast<char*>(&name_offset), sizeof(uint32_t));
+		uint32_t data_offset;
+		garc.read(reinterpret_cast<char*>(&data_offset), sizeof(uint32_t));
 
-        ///Getting file's name
-        garc.seekg(name_offset);
-        char buff = 0xFF;
-        int len = 0;
-        string file_name;
+		garc.seekg(addr + 0xC);
 
-        while(buff != 0x0)
-        {
-            garc.get(buff);
+		uint32_t name_offset;
+		garc.read(reinterpret_cast<char*>(&name_offset), sizeof(uint32_t));
 
-            len++;
-            file_name += buff;
+		///Getting file's name
+		garc.seekg(name_offset);
+		char buff = 0xFF;
+		int len = 0;
+		std::string file_name;
 
-            garc.seekg(name_offset+len);
+		while (buff != 0x0)
+		{
+			garc.get(buff);
 
-            //cout << "buff: " << buff << endl;
-        }
+			len++;
+			file_name += buff;
 
-        cout << "Extracting " << file_name << endl;
+			garc.seekg(name_offset + len);
 
-        int filesize_left = file_size;
-        int chunk_size = 10000;
-        int offset = data_offset;
+			//std::cout << "buff: " << buff << endl;
+		}
 
-        ///opening new file to clear out
-        ofstream outa(folder+"\\"+file_name, ios::binary | ios::trunc);
-        outa.close();
+		std::cout << "Extracting " << file_name.c_str() << "\n";
 
-        ofstream out(folder+"\\"+file_name, ios::binary | ios::app);
+		int filesize_left = file_size;
+		const int chunk_size = 10000;
+		int offset = data_offset;
 
-        while(filesize_left > chunk_size)
-        {
-            garc.seekg(offset);
-            char fl[chunk_size];
-            garc.read(fl,chunk_size);
+		///opening new file to clear out
+		std::ofstream outa(folder + "\\" + file_name, std::ios::binary | std::ios::trunc);
+		outa.close();
 
-            out.write(fl,chunk_size);
+		std::ofstream out(folder + "\\" + file_name, std::ios::binary | std::ios::app);
 
-            offset += chunk_size;
-            filesize_left -= chunk_size;
-        }
+		while (filesize_left > chunk_size)
+		{
+			garc.seekg(offset);
+			char fl[chunk_size];
+			garc.read(fl, chunk_size);
 
-        garc.seekg(offset);
-        char f1[filesize_left];
-        garc.read(f1,filesize_left);
+			out.write(fl, chunk_size);
 
-        out.write(f1,filesize_left);
-        out.close();
-    }
+			offset += chunk_size;
+			filesize_left -= chunk_size;
+		}
 
-    system("pause");
+		garc.seekg(offset);
+		//char f1[filesize_left];
+		char f1[chunk_size];
+		garc.read(f1, filesize_left);
 
-    return 0;
+		out.write(f1, filesize_left);
+		out.close();
+	}
+
+	//system("pause");
+
+	return 0;
 }
