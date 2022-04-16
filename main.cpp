@@ -25,6 +25,7 @@ int main(int argc, char *argv[])
 	std::string folder = "@" + file.substr(file.find_last_of("\\") + 1);
 
 	system(std::string("md \"" + folder + "\"").c_str());
+	// TO DO: remove calles to system with <filesystem> library
 
 	//std::ifstream garc(file, std::ios::binary);
 
